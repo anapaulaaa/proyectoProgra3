@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gastro | Menú</title>
+  <link rel="stylesheet" href="css/viewUsuario.css">
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">Gastro<span>.</span></a>
+    <div class="nav-actions">
+      <span class="nav-tagline">Cafetería & Sándwiches</span>
+      <div class="carrito-wrapper">
+        <button id="carritoToggle" class="carrito-toggle" type="button" aria-expanded="false" aria-controls="carritoPanel">
+          <span class="carrito-toggle-label">Carrito</span>
+          <span id="carritoCount" class="carrito-count">0</span>
+        </button>
+        <div id="carritoPanel" class="carrito-panel" aria-hidden="true">
+          <div class="carrito-panel-header">
+            <strong>Tu carrito</strong>
+            <button id="carritoCerrar" class="carrito-close" type="button" aria-label="Cerrar carrito">×</button>
+          </div>
+          <div id="carritoItems" class="carrito-items"></div>
+          <div class="carrito-panel-footer">
+            <div class="carrito-total-row">
+              <span>Total</span>
+              <strong id="carritoTotal">Q 0.00</strong>
+            </div>
+            <label class="checkout-field">
+              <span>Correo</span>
+              <input id="checkoutEmail" class="checkout-input" type="email" placeholder="correo@ejemplo.com">
+            </label>
+            <label class="checkout-field">
+              <span>Nombre</span>
+              <input id="checkoutNombre" class="checkout-input" type="text" placeholder="Se autocompleta si el correo existe">
+            </label>
+            <label class="checkout-field">
+              <span>Teléfono</span>
+              <input id="checkoutTelefono" class="checkout-input" type="text" placeholder="Se autocompleta si el correo existe">
+            </label>
+            <label class="checkout-field">
+              <span>Dirección de entrega</span>
+              <input id="checkoutDireccion" class="checkout-input" type="text" placeholder="Zona, calle, referencias">
+            </label>
+            <button id="carritoVaciar" class="carrito-secondary" type="button">Vaciar carrito</button>
+            <button id="carritoCheckout" class="carrito-primary" type="button">Continuar pedido</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-left">
+      <span class="hero-label">Menú del día</span>
+      <h1>Hecho con<br>cariño, <em>servido</em><br>con estilo.</h1>
+    </div>
+    <div class="hero-right">
+      <p>Cafés artesanales, sándwiches frescos y postres irresistibles — todo en un solo lugar.</p>
+    </div>
+  </section>
+  <div class="hero-divider"><div class="hero-divider-inner"></div></div>
+
+  <!-- FILTROS -->
+  <div class="filtros-wrapper">
+    <span class="filtros-label">Explorar por categoría</span>
+    <div class="filtros" id="filtros">
+      <button class="filtro-btn active" data-categoria="todos">Todos</button>
+    </div>
+  </div>
+
+  <!-- CONTENIDO -->
+  <main id="contenido">
+    <div class="loading">
+      <div class="loading-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <p>Cargando menú...</p>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 Gastro · Hecho con ☕ y mucho amor</p>
+  </footer>
+
+<script src="./js/api.js"></script>
+<script>
+  const API = window.GastroAPI || {
+    url(path) {
+      return `http://localhost:3001/api${path}`;
+    }
+  };
+  const storageKey = 'gastro_carrito';
+
+  const iconos = {
+    'Cafés calientes':  '☕',
+    'Cafés fríos':      '🧊',
+    'Sándwiches':       '🥪',
+    'Pasteles y panes': '🥐',
+    'Bebidas frías':    '🥤'
+  };
+
+  const imagenesProductos = {
+    'Espresso':            'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=600&q=80',
+    'Americano':           'https://images.unsplash.com/photo-1551030173-122aabc4489c?w=600&q=80',
+    'Cappuccino':          'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600&q=80',
+    'Latte':               'https://images.unsplash.com/photo-1561047029-3000c68339ca?w=600&q=80',
+    'Mocha':               'https://images.unsplash.com/photo-1618576230663-9714aecfb99a?w=600&q=80',
+    'Cold Brew':           'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600&q=80',
+    'Iced Latte':          'https://images.unsplash.com/photo-1671759545218-831c32bfe92d?w=600&q=80',
+    'Frappuccino':         'https://plus.unsplash.com/premium_photo-1690212143534-aff93264082b?w=600&q=80',
+    'Iced Mocha':          'https://images.unsplash.com/photo-1634112957296-3f60457b21e6?w=600&q=80',
+    'Club Sándwich':       'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&q=80',
+    'Caprese':             'https://images.unsplash.com/photo-1509722747041-616f39b57569?w=600&q=80',
+    'BLT':                 'https://images.unsplash.com/photo-1619096252214-ef06c45683e3?w=600&q=80',
+    'Pavo y Brie':         'https://images.unsplash.com/photo-1481070414801-51fd732d7184?w=600&q=80',
+    'Croissant':           'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&q=80',
+    'Muffin de Arándanos': 'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?w=600&q=80',
+    'Cheesecake':          'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=80',
+    'Brownie':             'https://images.unsplash.com/photo-1515037893149-de7f840978e2?w=600&q=80',
+    'Limonada':            'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=600&q=80',
+    'Smoothie de Fresa':   'https://plus.unsplash.com/premium_photo-1726765809820-80c09e800f3b?w=600&q=80',
+    'Té Helado':           'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80',
+  };
+
+  let todosProductos = [];
+  let todasCategorias = [];
+  let usuariosSistema = [];
+  let carrito = loadCarrito();
+
+  const carritoToggle = document.getElementById('carritoToggle');
+  const carritoPanel = document.getElementById('carritoPanel');
+  const carritoCerrar = document.getElementById('carritoCerrar');
+  const carritoItems = document.getElementById('carritoItems');
+  const carritoCount = document.getElementById('carritoCount');
+  const carritoTotal = document.getElementById('carritoTotal');
+  const carritoVaciar = document.getElementById('carritoVaciar');
+  const carritoCheckout = document.getElementById('carritoCheckout');
+  const checkoutEmail = document.getElementById('checkoutEmail');
+  const checkoutNombre = document.getElementById('checkoutNombre');
+  const checkoutDireccion = document.getElementById('checkoutDireccion');
+  const checkoutTelefono = document.getElementById('checkoutTelefono');
+
+  function loadCarrito() {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCarrito() {
+    localStorage.setItem(storageKey, JSON.stringify(carrito));
+  }
+
+  function formatPrecio(valor) {
+    return `Q ${Number(valor || 0).toFixed(2)}`;
+  }
+
+  function getCarritoResumen() {
+    const cantidad = carrito.reduce((acc, item) => acc + item.cantidad, 0);
+    const total = carrito.reduce((acc, item) => acc + item.cantidad * item.precio, 0);
+    return { cantidad, total };
+  }
+
+  function renderCarrito() {
+    const { cantidad, total } = getCarritoResumen();
+    carritoCount.textContent = cantidad;
+    carritoTotal.textContent = formatPrecio(total);
+
+    if (!carrito.length) {
+      carritoItems.innerHTML = '<div class="carrito-empty">Todavía no agregas productos.</div>';
+      return;
+    }
+
+    carritoItems.innerHTML = carrito.map(item => `
+      <div class="carrito-item" data-id="${item.id}">
+        <div>
+          <strong>${item.nombre}</strong>
+          <span>${formatPrecio(item.precio)} c/u</span>
+        </div>
+        <div class="carrito-item-actions">
+          <button type="button" class="carrito-qty" data-action="decrease">−</button>
+          <span>${item.cantidad}</span>
+          <button type="button" class="carrito-qty" data-action="increase">+</button>
+          <button type="button" class="carrito-remove" data-action="remove">Eliminar</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderCheckoutUsuarios() {
+    return;
+  }
+
+  function generarPasswordTemporal(email) {
+    const base = email.split('@')[0] || 'cliente';
+    return `gastro-${base}-${Date.now()}`;
+  }
+
+  function syncUsuarioDesdeEmail() {
+    const email = checkoutEmail.value.trim().toLowerCase();
+    const usuario = usuariosSistema.find(entry => String(entry.email || '').trim().toLowerCase() === email);
+
+    if (!usuario) {
+      checkoutNombre.value = '';
+      checkoutTelefono.value = '';
+      return;
+    }
+
+    checkoutNombre.value = usuario.nombre || '';
+    checkoutTelefono.value = usuario.telefono || '';
+  }
+
+  async function asegurarUsuarioRegistrado() {
+    const email = checkoutEmail.value.trim().toLowerCase();
+    const nombre = checkoutNombre.value.trim();
+    const telefono = checkoutTelefono.value.trim();
+
+    if (!email) {
+      throw new Error('correo');
+    }
+
+    const nombreBase = nombre || email.split('@')[0] || 'Cliente';
+    const usuarioExistente = usuariosSistema.find(entry => String(entry.email || '').trim().toLowerCase() === email);
+
+    if (usuarioExistente) {
+      const usuarioActualizado = {
+        nombre: nombreBase,
+        email,
+        rol: usuarioExistente.rol || 'cliente',
+        telefono: telefono || usuarioExistente.telefono || ''
+      };
+
+      await GastroAPI.put(`/users/${usuarioExistente.id}`, usuarioActualizado);
+
+      usuarioExistente.nombre = usuarioActualizado.nombre;
+      usuarioExistente.email = usuarioActualizado.email;
+      usuarioExistente.rol = usuarioActualizado.rol;
+      usuarioExistente.telefono = usuarioActualizado.telefono;
+
+      return usuarioExistente;
+    }
+
+    const nuevoUsuario = {
+      nombre: nombreBase,
+      email,
+      password: generarPasswordTemporal(email),
+      rol: 'cliente',
+      telefono: telefono || ''
+    };
+
+    const response = await GastroAPI.post('/users', nuevoUsuario);
+
+    if (!response.success || !response.id) {
+      throw new Error('no-se-pudo-registrar');
+    }
+
+    const usuarioRegistrado = {
+      id: response.id,
+      nombre: nuevoUsuario.nombre,
+      email: nuevoUsuario.email,
+      rol: nuevoUsuario.rol,
+      telefono: nuevoUsuario.telefono
+    };
+
+    usuariosSistema.push(usuarioRegistrado);
+    return usuarioRegistrado;
+  }
+
+  function toggleCarrito(forceOpen) {
+    const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !carritoPanel.classList.contains('open');
+    carritoPanel.classList.toggle('open', shouldOpen);
+    carritoToggle.setAttribute('aria-expanded', String(shouldOpen));
+    carritoPanel.setAttribute('aria-hidden', String(!shouldOpen));
+  }
+
+  function addToCarrito(producto) {
+    const existente = carrito.find(item => item.id === producto.id);
+    if (existente) {
+      existente.cantidad += 1;
+    } else {
+      carrito.push({
+        id: producto.id,
+        nombre: producto.nombre,
+        precio: Number(producto.precio),
+        cantidad: 1
+      });
+    }
+    saveCarrito();
+    renderCarrito();
+    toggleCarrito(true);
+  }
+
+  function updateCarritoItem(productoId, delta) {
+    const item = carrito.find(entry => entry.id === productoId);
+    if (!item) return;
+    item.cantidad += delta;
+    if (item.cantidad <= 0) {
+      carrito = carrito.filter(entry => entry.id !== productoId);
+    }
+    saveCarrito();
+    renderCarrito();
+  }
+
+  function removeCarritoItem(productoId) {
+    carrito = carrito.filter(entry => entry.id !== productoId);
+    saveCarrito();
+    renderCarrito();
+  }
+
+  function clearCarrito() {
+    carrito = [];
+    saveCarrito();
+    renderCarrito();
+  }
+
+  carritoToggle.addEventListener('click', () => toggleCarrito());
+  carritoCerrar.addEventListener('click', () => toggleCarrito(false));
+  carritoVaciar.addEventListener('click', clearCarrito);
+  carritoCheckout.addEventListener('click', () => {
+    enviarPedido();
+  });
+
+  checkoutEmail.addEventListener('blur', syncUsuarioDesdeEmail);
+  checkoutEmail.addEventListener('change', syncUsuarioDesdeEmail);
+
+  carritoItems.addEventListener('click', e => {
+    const action = e.target.dataset.action;
+    if (!action) return;
+    const item = e.target.closest('.carrito-item');
+    const productoId = Number(item.dataset.id);
+
+    if (action === 'increase') updateCarritoItem(productoId, 1);
+    if (action === 'decrease') updateCarritoItem(productoId, -1);
+    if (action === 'remove') removeCarritoItem(productoId);
+  });
+
+  document.addEventListener('click', e => {
+    if (!carritoPanel.contains(e.target) && !carritoToggle.contains(e.target)) {
+      toggleCarrito(false);
+    }
+  });
+
+  async function enviarPedido() {
+    if (!carrito.length) {
+      alert('Agrega productos al carrito antes de continuar.');
+      return;
+    }
+
+    const email = checkoutEmail.value.trim();
+    const direccion_entrega = checkoutDireccion.value.trim();
+
+    if (!email) {
+      alert('Escribe el correo primero.');
+      return;
+    }
+
+    if (!direccion_entrega) {
+      alert('Escribe la dirección de entrega.');
+      return;
+    }
+
+    const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+
+    try {
+      const usuario = await asegurarUsuarioRegistrado();
+      const telefono = checkoutTelefono.value.trim();
+      const clienteSeleccionado = usuario.nombre || email || String(usuario.id);
+
+      const result = await GastroAPI.post('/pedidos', {
+        usuario_id: usuario.id,
+        total,
+        estado: 'pendiente',
+        direccion_entrega
+      });
+
+      if (result.success) {
+        clearCarrito();
+        checkoutEmail.value = '';
+        checkoutNombre.value = '';
+        checkoutDireccion.value = '';
+        checkoutTelefono.value = '';
+        alert(`Pedido recibido. Nos contactaremos contigo cuando esté listo. Cliente: ${clienteSeleccionado}${telefono ? ` | Tel: ${telefono}` : ''}`);
+      } else {
+        alert('No se pudo enviar el pedido.');
+      }
+    } catch (error) {
+      console.error(error);
+      if (String(error.message || '') === 'correo') {
+        alert('Escribe el correo primero.');
+      } else if (String(error.message || '') === 'no-se-pudo-registrar') {
+        alert('No se pudo registrar el cliente.');
+      } else {
+        alert('Error al enviar el pedido.');
+      }
+    }
+  }
+
+  async function cargarMenu() {
+    try {
+      const [resCat, resProd, resUser] = await Promise.all([
+        fetch(API.url('/categorias')),
+        fetch(API.url('/productos')),
+        fetch(API.url('/user'))
+      ]);
+
+      const dataCat  = await resCat.json();
+      const dataProd = await resProd.json();
+      const dataUser = await resUser.json();
+
+      if (!dataCat.success || !dataProd.success || !dataUser.success) throw new Error('Error en API');
+
+      todasCategorias = dataCat.data;
+      todosProductos  = dataProd.data.filter(p => p.disponible);
+      usuariosSistema = dataUser.data;
+
+      renderFiltros();
+      renderCheckoutUsuarios();
+      renderTodo();
+
+    } catch (err) {
+      document.getElementById('contenido').innerHTML = `
+        <div class="loading">
+          <p style="color:#C49A3C">No se pudo conectar con el servidor.<br>Asegúrate de que el backend esté corriendo.</p>
+        </div>`;
+      console.error(err);
+    }
+  }
+
+  function renderFiltros() {
+    const contenedor = document.getElementById('filtros');
+    contenedor.innerHTML = '<button class="filtro-btn active" data-categoria="todos">Todos</button>';
+
+    todasCategorias.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'filtro-btn';
+      btn.dataset.categoria = cat.id;
+      btn.textContent = (iconos[cat.nombre] || '•') + ' ' + cat.nombre;
+      contenedor.appendChild(btn);
+    });
+
+    contenedor.onclick = e => {
+      const boton = e.target.closest('.filtro-btn');
+      if (!boton) return;
+
+      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+      boton.classList.add('active');
+
+      const cat = boton.dataset.categoria;
+      if (cat === 'todos') {
+        renderTodo();
+      } else {
+        renderCategoria(
+          todasCategorias.find(c => c.id == cat),
+          todosProductos.filter(p => p.categoria_id == cat)
+        );
+      }
+    };
+  }
+
+  function renderTodo() {
+    const contenido = document.getElementById('contenido');
+    contenido.innerHTML = '';
+    todasCategorias.forEach(cat => {
+      const prods = todosProductos.filter(p => p.categoria_id === cat.id);
+      if (prods.length === 0) return;
+      contenido.appendChild(crearSeccion(cat, prods));
+    });
+  }
+
+  function renderCategoria(cat, prods) {
+    const contenido = document.getElementById('contenido');
+    contenido.innerHTML = '';
+    if (prods.length === 0) {
+      contenido.innerHTML = '<div class="loading"><p>No hay productos en esta categoría.</p></div>';
+      return;
+    }
+    contenido.appendChild(crearSeccion(cat, prods));
+  }
+  function crearSeccion(cat, prods) {
+    const section = document.createElement('div');
+    section.className = 'categoria-section';
+
+    const titulo = document.createElement('h2');
+    titulo.className = 'categoria-titulo';
+    titulo.innerHTML = `<span class="categoria-titulo-icon">${iconos[cat.nombre] || ''}</span> ${cat.nombre}`;
+    section.appendChild(titulo);
+
+    const grid = document.createElement('div');
+    grid.className = 'productos-grid';
+
+    prods.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'producto-card';
+      card.style.animationDelay = `${i * 0.07}s`;
+
+      const imgSrc = p.imagen || imagenesProductos[p.nombre] || null;
+
+      card.innerHTML = `
+        <div class="producto-img-wrap">
+          ${imgSrc
+            ? `<img src="${imgSrc}" alt="${p.nombre}" loading="lazy"><div class="producto-img-overlay"></div>`
+            : `<div class="producto-img-placeholder">${iconos[cat.nombre] || '🍽️'}</div>`}
+        </div>
+        <div class="producto-body">
+          <div class="producto-nombre">${p.nombre}</div>
+          <div class="producto-descripcion">${p.descripcion || ''}</div>
+          <div class="producto-footer">
+            <span class="producto-precio">Q ${parseFloat(p.precio).toFixed(2)}</span>
+            <button class="producto-add" type="button" data-producto-id="${p.id}">Añadir al carrito</button>
+          </div>
+        </div>
+      `;
+
+      grid.appendChild(card);
+    });
+
+    grid.addEventListener('click', e => {
+      const boton = e.target.closest('.producto-add');
+      if (!boton) return;
+      e.stopPropagation();
+      const productoId = Number(boton.dataset.productoId);
+      const producto = todosProductos.find(prod => prod.id === productoId);
+      if (producto) addToCarrito(producto);
+    });
+
+    section.appendChild(grid);
+    return section;
+  }
+
+  renderCarrito();
+  cargarMenu();
+</script>
+</body>
+</html>

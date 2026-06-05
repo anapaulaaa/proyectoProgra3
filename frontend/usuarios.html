@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>AdminLTE 2 | Usuarios</title>
+
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="./Admin/bower_components/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./Admin/bower_components/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="./Admin/bower_components/Ionicons/css/ionicons.min.css">
+  <link rel="stylesheet" href="./Admin/dist/css/AdminLTE.min.css">
+  <link rel="stylesheet" href="./Admin/dist/css/skins/skin-blue.min.css">
+  <link rel="stylesheet" href="./css/admin-theme.css">
+
+  <link rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700">
+
+</head>
+
+<body class="hold-transition skin-green sidebar-mini">
+
+<div id="header-container"></div>
+<div id="sidebar-container"></div>
+
+<div class="content-wrapper">
+  <section class="content-header">
+    <h1>
+      Gestión de Usuarios
+      <small>Administrar usuarios del sistema</small>
+    </h1>
+  </section>
+
+  <section class="content container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="box">
+          <div class="box-header with-border">
+            <h3 class="box-title">
+              Lista de Usuarios
+            </h3>
+
+            <div class="box-tools pull-right">
+
+              <button
+                class="btn btn-primary btn-sm"
+                onclick="agregarUsuario()">
+
+                <i class="fa fa-plus"></i>
+                Agregar Usuario
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="box-body">
+            <table class="table table-bordered table-striped">
+              <thead>
+
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+
+              <tbody id="tabla-usuarios">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div id="footer-container"></div>
+<div id="scripts-container"></div>
+
+<script src="./js/api.js"></script>
+<script>
+function loadComponent(url, containerId) {
+  return fetch(url)
+    .then(response => {
+
+      if (!response.ok) {
+        throw new Error('Error loading ' + url);
+      }
+      return response.text();
+    })
+    .then(data => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = data;
+      }
+    })
+    .catch(error => {
+      console.error(error);
+    });
+
+}
+
+// CARGAR USUARIOS
+function cargarUsuarios() {
+
+  fetch(GastroAPI.url('/user'))
+    .then(res => res.json())
+    .then(result => {
+      const tabla = document.getElementById('tabla-usuarios');
+      if(result.success){
+        tabla.innerHTML = result.data.map(u => `
+          <tr>
+            <td>${u.id}</td>
+            <td>${u.nombre}</td>
+            <td>${u.email}</td>
+            <td>
+              <span class="label label-info">
+                ${u.rol}
+              </span>
+            </td>
+
+            <td>
+              <span class="label label-success">
+                Activo
+              </span>
+            </td>
+
+            <td>
+              <button
+                class="btn btn-info btn-xs"
+                onclick="editarUsuario(${u.id})">
+                <i class="fa fa-edit"></i>
+                Editar
+
+              </button>
+
+              <button
+                class="btn btn-danger btn-xs"
+                onclick="eliminarUsuario(${u.id})">
+
+                <i class="fa fa-trash"></i>
+                Eliminar
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+      }
+
+    })
+
+    .catch(err => console.error(err));
+
+}
+
+// AGREGAR
+function agregarUsuario() {
+  const nombre = prompt("Nombre:");
+  const email = prompt("Email:");
+  const password = prompt("Password:");
+  const rol = prompt("Rol:");
+  const telefono = prompt("Telefono:");
+
+  if(!nombre || !email || !password || !rol){
+    alert("Completa todos los campos");
+    return;
+  }
+
+  fetch(GastroAPI.url('/users'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    body: JSON.stringify({
+      nombre,
+      email,
+      password,
+      rol,
+      telefono
+    })
+  })
+
+  .then(res => res.json())
+  .then(result => {
+
+    if(result.success){
+      alert("Usuario agregado");
+      cargarUsuarios();
+    }else{
+      alert("Error agregando usuario");
+    }
+
+  })
+  .catch(err => console.error(err));
+}
+
+// EDITAR
+function editarUsuario(id) {
+
+  fetch(GastroAPI.url(`/users/${id}`))
+
+    .then(res => res.json())
+    .then(result => {
+      if(result.success){
+        const usuario = result.data;
+        const nuevoNombre = prompt(
+          "Editar nombre:",
+          usuario.nombre
+        );
+
+        const nuevoEmail = prompt(
+          "Editar email:",
+          usuario.email
+        );
+        const nuevoRol = prompt(
+          "Editar rol:",
+          usuario.rol
+        );
+        if(!nuevoNombre || !nuevoEmail || !nuevoRol){
+          return;
+        }
+        fetch(GastroAPI.url(`/users/${id}`), {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+
+          body: JSON.stringify({
+            nombre: nuevoNombre,
+            email: nuevoEmail,
+            rol: nuevoRol
+          })
+        })
+        .then(res => res.json())
+
+        .then(data => {
+          if(data.success){
+            alert("Usuario actualizado");
+            cargarUsuarios();
+          }else{
+            alert("Error actualizando usuario");
+          }
+        });
+      }
+    })
+
+    .catch(err => console.error(err));
+
+}
+// ELIMINAR
+function eliminarUsuario(id) {
+
+  if(confirm('¿Eliminar usuario?')){
+
+    fetch(GastroAPI.url(`/users/${id}`), {
+      method: 'DELETE'
+    })
+
+    .then(res => res.json())
+    .then(result => {
+      if(result.success){
+        alert('Usuario eliminado');
+        cargarUsuarios();
+      }else{
+        alert('Error eliminando usuario');
+      }
+    })
+    .catch(err => console.error(err));
+  }
+}
+// INICIO
+document.addEventListener('DOMContentLoaded', function() {
+
+  Promise.all([
+    loadComponent('./components/header.html', 'header-container'),
+    loadComponent('./components/sidebar.html', 'sidebar-container'),
+    loadComponent('./components/footer.html', 'footer-container'),
+    loadComponent('./components/scripts.html', 'scripts-container')
+  ])
+  .then(() => {
+    cargarUsuarios();
+  })
+  .catch(error => {
+    console.error(error);
+  });
+});
+</script>
+</body>
+</html>
